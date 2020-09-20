@@ -23,6 +23,7 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
         """
         self.lr = lr
         self.shuffle = shuffle
+        self.initial_weights = []
 
     def fit(self, X, y, initial_weights=None):
         """ Fit the data; run the algorithm and adjust the weights to find a good solution
@@ -36,12 +37,12 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
             self: this allows this to be chained, e.g. model.fit(X,y).predict(X_test)
 
         """
-        self.initial_weights = self.initialize_weights() if not initial_weights else initial_weights
+        self.initial_weights = self.initialize_weights(X) if initial_weights is None else initial_weights
 
         assert (len(X) == len(y))
-        assert (len(X[0]) + 1 == len(initial_weights))
 
-        weights = initial_weights
+        weights = self.initial_weights
+        print(weights)
         best_weights = weights
         value = []
         net = []
@@ -51,10 +52,10 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
         counter = 0
         while not finished:
             for row, rowy in zip(X, y):
-                row.append(1)
+                np.append(row, 1)
 
                 for column in row:
-                    value.append(np.dot(column,weights))
+                    np.append(value, np.dot(column, weights))
 
                 net.append(1 if value[-1] > 0 else 0)
                 if net[-1] != rowy:
@@ -102,7 +103,7 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
         Returns: initial weights for the given inputs X
 
         """
-        self.initial_weights = np.zeros(len(X[0])+1)
+        self.initial_weights = np.zeros(len(X[0]) + 1)
         return self.initial_weights
 
     def score(self, X, y):
@@ -132,7 +133,7 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
         length = len(y)
         index = 0
         indices = np.arange(length)
-        np.random.shuffle(indices,dtype=int)
+        np.random.shuffle(indices, dtype=int)
         X = X[indices]
         y = y[indices]
 
@@ -146,7 +147,7 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
 
         change = 1 if under else -1
         for w, x in zip(weights, X):
-            w += self.lr*change*x
+            w += self.lr * change * x
 
         return weights
 

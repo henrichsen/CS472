@@ -14,8 +14,7 @@ if doshuffle:
 split=int(round(alllength*.7))
 trainingset= alldata[:split]
 testset=alldata[split:]
-print(trainingset[:,-1])
 percept=PerceptronClassifier()
-percept.initialize_weights(trainingset[:, :2])
+#percept.initialize_weights(trainingset[:, :2])
 percept.fit(trainingset[:, :2], trainingset[:, -1])
 
