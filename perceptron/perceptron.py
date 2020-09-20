@@ -133,7 +133,7 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
         length = len(y)
         index = 0
         indices = np.arange(length)
-        np.random.shuffle(indices)
+        np.random.shuffle(indices,dtype=int)
         X = X[indices]
         y = y[indices]
 

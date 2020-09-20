@@ -1,0 +1,14 @@
+import numpy as np
+from arff import Arff
+
+
+filepath="linsep2nonorigin.arff"
+alldata=
+print(alldata)
+doshuffle=True
+if doshuffle:
+    np.random.shuffle(alldata)
+trainingset= alldata[:alllength*.7]
+testset=alldata[alllength*.7:]
+print(trainingset)
+print(testset)
