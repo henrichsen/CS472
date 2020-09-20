@@ -23,7 +23,6 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
         """
         self.lr = lr
         self.shuffle = shuffle
-        self.initial_weights
 
     def fit(self, X, y, initial_weights=None):
         """ Fit the data; run the algorithm and adjust the weights to find a good solution
@@ -97,13 +96,13 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
         return net
         pass
 
-    def initialize_weights(self, X=[]):
+    def initialize_weights(self, X=[[]]):
         """ Initialize weights for perceptron. Don't forget the bias!
 
         Returns: initial weights for the given inputs X
 
         """
-        self.initial_weights = [0] * (len(X[0]) + 1)
+        self.initial_weights = np.zeros(len(X[0])+1)
         return self.initial_weights
 
     def score(self, X, y):
