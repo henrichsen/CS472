@@ -2,19 +2,18 @@ import numpy as np
 from arff import Arff
 from perceptron import PerceptronClassifier
 
-
-filepath="linsep2nonorigin.arff"
+filepath = "linsep2nonorigin.arff"
+filepath = "data_banknote_authentication.arff"
 af = Arff()
 af.load_arff(filepath)
 alldata = af.data
 alllength = len(alldata)
-doshuffle=True
+doshuffle = False
 if doshuffle:
     np.random.shuffle(alldata)
-split=int(round(alllength*.7))
-trainingset= alldata[:split]
-testset=alldata[split:]
-percept=PerceptronClassifier()
-#percept.initialize_weights(trainingset[:, :2])
-percept.fit(trainingset[:, :2], trainingset[:, -1])
-
+split = int(round(alllength * .7))
+split = alllength
+trainingset = alldata[:split]
+testset = alldata[split:]
+percept = PerceptronClassifier(shuffle=doshuffle, deterministic=10)
+percept.fit(trainingset[:, :-1], trainingset[:, -1])

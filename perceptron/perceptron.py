@@ -14,7 +14,7 @@ from sklearn.linear_model import Perceptron
 
 class PerceptronClassifier(BaseEstimator, ClassifierMixin):
 
-    def __init__(self, lr=.1, shuffle=True):
+    def __init__(self, lr=.1, shuffle=True, deterministic=10):
         """ Initialize class with chosen hyperparameters.
 
         Args:
@@ -24,6 +24,8 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
         self.lr = lr
         self.shuffle = shuffle
         self.initial_weights = []
+        self.weights = []
+        self.deterministic = deterministic
 
     def fit(self, X, y, initial_weights=None):
         """ Fit the data; run the algorithm and adjust the weights to find a good solution
@@ -38,41 +40,39 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
 
         """
         self.initial_weights = self.initialize_weights(X) if initial_weights is None else initial_weights
-
+        self.weights = self.initial_weights
         assert (len(X) == len(y))
 
-        weights = self.initial_weights
-        print(weights)
-        best_weights = weights
+        best_weights = self.weights
         value = []
         net = []
 
         finished = False
         base_accuracy = 0
         counter = 0
-        while not finished:
+        while self.deterministic>0:
+
             for row, rowy in zip(X, y):
-                np.append(row, 1)
 
-                for column in row:
-                    np.append(value, np.dot(column, weights))
-
-                net.append(1 if value[-1] > 0 else 0)
+                single_value = np.dot(row, self.weights[:-1]) + self.weights[-1] * 1
+                value = np.append(value, [single_value])
+                net = np.append(net, 1 if value[-1] > 0 else 0)
                 if net[-1] != rowy:
                     under = net[-1] < rowy
-                    weights = self.update_weights(self, under, weights, X)
-            current_accuracy = self.score(self, X, y)
-            if current_accuracy > base_accuracy:
-                base_accuracy = current_accuracy
-                best_weights = weights
-                counter = 0
-            else:
-                counter += 1
-            if counter >= 5:
-                finished = True
-                weights = best_weights
+                    self.update_weights(under, row)
+                current_accuracy = self.score(X, y)
+                if current_accuracy > base_accuracy:
+                    base_accuracy = current_accuracy
+                    best_weights = self.weights
             if self.shuffle:
-                self._shuffle_data(self, X, y)
+                X, y = self._shuffle_data(X, y)
+
+            self.deterministic -= 1
+            print('iterations left: ' + str(self.deterministic))
+        print('Accuracy')
+        print(base_accuracy)
+        print('best weights')
+        print(best_weights)
         return self
 
     def predict(self, X):
@@ -85,15 +85,13 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
             array, shape (n_samples,)
                 Predicted target values per element in X.
         """
-        value = 0
-        net = 0
+
+        net = []
         for row in X:
-            row.append(1)
+            row = np.append(row, 1)
+            value = np.dot(row, self.weights) + self.weights[-1] * 1
 
-            for column in row:
-                value.append(np.dot(column, self.initial_weights))
-
-            net.append(1 if value[-1] > 0 else 0)
+            net = np.append(net, 1 if value > 0 else 0)
         return net
         pass
 
@@ -117,9 +115,9 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
             score : float
                 Mean accuracy of self.predict(X) wrt. y.
         """
-        net = self.predict(self, X)
+        net = self.predict(X)
         length = len(y)
-        correct = 0;
+        correct = 0
         for valuen, valuey in zip(net, y):
             if valuen == valuey:
                 correct += 1
@@ -131,24 +129,23 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
              shuffling X and y exactly the same way, independently.
         """
         length = len(y)
-        index = 0
         indices = np.arange(length)
-        np.random.shuffle(indices, dtype=int)
+        np.random.shuffle(indices)
         X = X[indices]
         y = y[indices]
-
+        return X, y
         pass
 
     ### Not required by sk-learn but required by us for grading. Returns the weights.
     def get_weights(self):
+        return self.weights
         pass
 
-    def update_weights(self, under, weights, X):
+    def update_weights(self, under, X):
 
         change = 1 if under else -1
-        for w, x in zip(weights, X):
-            w += self.lr * change * x
-
-        return weights
+        deltaW = self.lr * change * X
+        deltaW = np.append(deltaW, self.lr * change * 1)
+        self.weights += deltaW
 
         pass
