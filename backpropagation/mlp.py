@@ -57,12 +57,24 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         if initial_weights is not None:
             hidden_layer_weights = self.initialize_weights(hidden_layer_weights, initial_weights['hidden'])
             output_layer_weights = self.initialize_weights(output_layer_weights, initial_weights['output'])
-        hidden_layer_net= len(hidden_layer_weights)
-        output_layer_net= len(output_layer_weights)
-        hidden_layer_z= len(hidden_layer_weights)
-        output_layer_z= len(output_layer_weights)
+        hidden_layer_net = len(hidden_layer_weights)
+        output_layer_net = len(output_layer_weights)
+        hidden_layer_z = len(hidden_layer_weights)
+        output_layer_z = len(output_layer_weights)
+        output_layer_z_binary = len(output_layer_weights)
 
-        
+        # start calculate Z
+        for z, net, weights, input in zip(hidden_layer_z, hidden_layer_net, hidden_layer_weights, X):
+            net = np.dot(input, weights)
+            z = self.fnet(net)
+        for z, net, weights,  input in zip(output_layer_z, output_layer_net, output_layer_weights, hidden_layer_z):
+            net = np.dot(input, weights)
+            z = self.fnet(net)
+        output_layer_z_binary = np.around(output_layer_z)
+        # end Calculate Z
+
+        # start Calculate delta
+
         return self
 
     def predict(self, X):
@@ -116,23 +128,11 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         pass
 
     def fnet(self, net):
-        Zj = 1 / (1 + exp(-net))
+        Zj = 1 / (1 + np.exp(-net))
         return Zj
         pass
 
     def fprime(self, net):
-        Z = self.fnet(Zj)
+        Z = self.fnet(net)
         return Z * (1 - Z)
-        pass
-
-    def OutDelta(self, net, target):
-        return (target - self.fnet(net)) * self.fprime(net)
-        pass
-
-    def HiddenDelta(self, net, odelta, w):
-        sumj = 0
-        for deltak, weightk in zip(odelta, w):
-            sumj += deltak * weightk
-        sumj *= self.fprime(net)
-        return sumj
         pass
