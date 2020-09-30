@@ -1,19 +1,35 @@
 import numpy as np
 from arff import Arff
 from perceptron import PerceptronClassifier
+from sklearn.linear_model import Perceptron
 
-filepath = "linsep2nonorigin.arff"
-filepath = "data_banknote_authentication.arff"
+filepath = "linsep2nonorigin.arff" #example
+#filepath = "data_banknote_authentication.arff" #grading
+#filepath = "LineSep.arff" #linearaly separable self made
+#filepath = "NOTLineSep.arff" #Not separable self made
+#filepath = "Voting.arff" #voting dataset
 af = Arff()
 af.load_arff(filepath)
 alldata = af.data
 alllength = len(alldata)
 doshuffle = False
+dosplit= False
 if doshuffle:
     np.random.shuffle(alldata)
-split = int(round(alllength * .7))
-split = alllength
+if dosplit:
+    split = int(round(alllength * .7))
+else:
+    split = alllength
 trainingset = alldata[:split]
 testset = alldata[split:]
-percept = PerceptronClassifier(shuffle=doshuffle, deterministic=10)
+#sk=Perceptron(shuffle=True,alpha=44,eta0=50)
+#print(sk.fit(trainingset[:, :-1], trainingset[:, -1]))
+#print(sk.score(trainingset[:, :-1], trainingset[:, -1]))
+#print(sk.score(testset[:, :-1], testset[:, -1]))
+percept = PerceptronClassifier(lr=.1, shuffle=doshuffle, deterministic=20)
 percept.fit(trainingset[:, :-1], trainingset[:, -1])
+if dosplit:
+    testacc=percept.score(testset[:, :-1], testset[:, -1])
+    print("The Accuracy of the Weights for the Test set is: "+str(testacc))
+
+

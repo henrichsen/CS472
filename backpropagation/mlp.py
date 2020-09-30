@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 
+
 ### NOTE: The only methods you are required to have are:
 #   * predict
 #   * fit
@@ -8,9 +9,10 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 #   * get_weights
 #   They must take at least the parameters below, exactly as specified.
 
-class MLPClassifier(BaseEstimator,ClassifierMixin):
 
-    def __init__(self,lr=.1, momentum=0, shuffle=True,hidden_layer_widths=None):
+class MLPClassifier(BaseEstimator, ClassifierMixin):
+
+    def __init__(self, lr=.1, momentum=0, shuffle=True, hidden_layer_widths=None):
         """ Initialize class with chosen hyperparameters.
 
         Args:
@@ -27,7 +29,6 @@ class MLPClassifier(BaseEstimator,ClassifierMixin):
         self.momentum = momentum
         self.shuffle = shuffle
 
-
     def fit(self, X, y, initial_weights=None):
         """ Fit the data; run the algorithm and adjust the weights to find a good solution
 
@@ -40,8 +41,28 @@ class MLPClassifier(BaseEstimator,ClassifierMixin):
             self: this allows this to be chained, e.g. model.fit(X,y).predict(X_test)
 
         """
-        self.initial_weights = self.initialize_weights() if not initial_weights else initial_weights
+        #self.initial_weights = self.initialize_weights() if initial_weights is None else initial_weights
 
+        length = 2 * len(X) if self.hidden_layer_widths is None else self.hidden_layer_width
+
+        ones = np.ones((len(X), 1))
+        X = np.concatenate((X, ones), axis=1) # add bias
+        width = len(X)
+        hidden_layer_weights = np.random.rand(-1, 1, (length, width))
+
+        length = len(y)
+        width = len(hidden_layer_weights)+1 # include bias
+        output_layer_weights = np.random.uniform(-1, 1, (length, width))
+        
+        if initial_weights is not None:
+            hidden_layer_weights = self.initialize_weights(hidden_layer_weights, initial_weights['hidden'])
+            output_layer_weights = self.initialize_weights(output_layer_weights, initial_weights['output'])
+        hidden_layer_net= len(hidden_layer_weights)
+        output_layer_net= len(output_layer_weights)
+        hidden_layer_z= len(hidden_layer_weights)
+        output_layer_z= len(output_layer_weights)
+
+        
         return self
 
     def predict(self, X):
@@ -54,14 +75,15 @@ class MLPClassifier(BaseEstimator,ClassifierMixin):
         """
         pass
 
-    def initialize_weights(self):
+    def initialize_weights(self, weights=None, initial_weights=None):
         """ Initialize weights for perceptron. Don't forget the bias!
 
         Returns:
 
         """
-
-        return [0]
+        assert len(weights) == len(initial_weights)
+        assert len(weights[0]) == len(initial_weights[0])
+        return initial_weights
 
     def score(self, X, y):
         """ Return accuracy of model on a given dataset. Must implement own score function.
@@ -82,8 +104,35 @@ class MLPClassifier(BaseEstimator,ClassifierMixin):
             It might be easier to concatenate X & y and shuffle a single 2D array, rather than
              shuffling X and y exactly the same way, independently.
         """
+        indices = np.arrange(len(y))
+        np.random.shuffle(indices)
+        X = X[indices]
+        y = y[indices]
+        return X, y
         pass
 
     ### Not required by sk-learn but required by us for grading. Returns the weights.
     def get_weights(self):
+        pass
+
+    def fnet(self, net):
+        Zj = 1 / (1 + exp(-net))
+        return Zj
+        pass
+
+    def fprime(self, net):
+        Z = self.fnet(Zj)
+        return Z * (1 - Z)
+        pass
+
+    def OutDelta(self, net, target):
+        return (target - self.fnet(net)) * self.fprime(net)
+        pass
+
+    def HiddenDelta(self, net, odelta, w):
+        sumj = 0
+        for deltak, weightk in zip(odelta, w):
+            sumj += deltak * weightk
+        sumj *= self.fprime(net)
+        return sumj
         pass

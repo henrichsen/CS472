@@ -66,9 +66,8 @@ class PerceptronClassifier(BaseEstimator, ClassifierMixin):
                     best_weights = self.weights
             if self.shuffle:
                 X, y = self._shuffle_data(X, y)
-
+            print(str(1-current_accuracy))
             self.deterministic -= 1
-            print('iterations left: ' + str(self.deterministic))
         print('Accuracy')
         print(base_accuracy)
         print('best weights')
