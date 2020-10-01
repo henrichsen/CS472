@@ -43,6 +43,14 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         """
         #self.initial_weights = self.initialize_weights() if initial_weights is None else initial_weights
         # start initailize data
+        if self.shuffle:
+            X, y = self._shuffle_data(X,y)
+        divide = int(.75*len(X))
+        ValidationX = X[divide:]
+        Validationy = y[divide:]
+        X = X[:divide]
+        y = y[:divide]
+
         length = 2 * len(X) if self.hidden_layer_widths is None else self.hidden_layer_width
 
         ones = np.ones((len(X), 1))
@@ -59,16 +67,45 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         if initial_weights is not None:
             hidden_layer_weights = self.initialize_weights(hidden_layer_weights, initial_weights['hidden'])
             output_layer_weights = self.initialize_weights(output_layer_weights, initial_weights['output'])
+        epoch_number=0
+        best_accuracy=0
+        iterations_without_improvement=0
 
         # end initailize data
-
-        for x in X:
-            hidden_layer_net, output_layer_net, hidden_layer_z, output_layer_z, output_layer_z_binary = self.calculate_Z(hidden_layer_weights, x, output_layer_weights)
-
-
-        # start Calculate delta weights
-        hidden_layer_delta_weights, output_layer_delta_weights =self.calculate_delta_weights(hidden_layer_z,output_layer_z,hidden_layer_net,output_layer_net,hidden_layer_weights,output_layer_weights,x, y)
-
+        while iterations_without_improvement<25:
+            ## inside while statement
+            epoch_number+=1
+            for x in X:
+                hidden_layer_net, output_layer_net, hidden_layer_z, output_layer_z, output_layer_z_binary = self.calculate_Z(hidden_layer_weights, x, output_layer_weights)
+            # start calculate new weights
+                hidden_layer_delta_weights, output_layer_delta_weights =self.calculate_delta_weights(hidden_layer_z,output_layer_z,hidden_layer_net,output_layer_net,hidden_layer_weights,output_layer_weights,x, y,hidden_layer_old_delta_weights,output_layer_old_delta_weights)
+                hidden_layer_weights+=hidden_layer_delta_weights
+                output_layer_weights+=output_layer_delta_weights
+                hidden_layer_old_delta_weights=hidden_layer_delta_weights
+                output_layer_old_delta_weights=output_layer_delta_weights
+            # end calculate new weights
+             # start stopping criteria
+            current_accuracy=self.score(ValidationX,Validationy, hidden_layer_weights,output_layer_weights)
+            if current_accuracy>best_accuracy:
+                best_accuracy=current_accuracy
+                iterations_without_improvement=0
+            else:
+                iterations_without_improvement+=1
+            # end stopping criteria
+            if self.shuffle:
+                X,y = self._shuffle_data(X,y)
+            print('Epoch number: '+str(epoch_number)) ## for testing
+            print('Hidden layer weights: ')
+            print(hidden_layer_weights)
+            print('Output layer weights: ')
+            print(output_layer_weights) ## end for testing
+        #end while
+        print('In '+str(epoch_number)+' epochs, we obtained a accuracy of '+str(current_accuracy)+' with a learning rate of '+str(self.lr)+' and a momentum of '+str(self.momentum)+'.')
+        print('Hidden layer weights: ')
+        print(hidden_layer_weights)
+        print('Output layer weights: ')
+        print(output_layer_weights)
+        #return hidden_layer_weights, output_layer_weights
         return self
 
     def predict(self, X):
@@ -91,7 +128,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         assert len(weights[0]) == len(initial_weights[0])
         return initial_weights
 
-    def score(self, X, y):
+    def score(self, X, y,hidden_layer_weights=None,output_layer_weights=None):
         """ Return accuracy of model on a given dataset. Must implement own score function.
 
         Args:
@@ -102,8 +139,14 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
             score : float
                 Mean accuracy of self.predict(X) wrt. y.
         """
-
-        return 0
+        correct=0
+        if hidden_layer_weights or output_layer_weights is None:
+            return 0
+        for x, target in zip(X,y):
+            hidden_layer_net, output_layer_net, hidden_layer_z, output_layer_z, output_layer_z_binary = self.calculate_Z(hidden_layer_weights, x, output_layer_weights)
+            if output_layer_z_binary == target:
+                correct+=1
+        return correct/len(y)
 
     def _shuffle_data(self, X, y):
         """ Shuffle the data! This _ prefix suggests that this method should only be called internally.
@@ -181,5 +224,5 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         for delta_weights, delta, old_delta_weights in zip(hidden_layer_delta_weights, hidden_layer_delta, hidden_layer_old_delta_weights):
             for delta weight, z, old_delta_weight in zip(delta_weights, x, old_delta_weights): ## only current row of X
                 delta_weight = self.lr*delta*z+self.momentum*old_delta_weight
-                
-        return hidden_layer_delta_weights, output_layer_delta_weights
+
+        return hidden_layer_delta_weights, output_layer_delta_weights,
