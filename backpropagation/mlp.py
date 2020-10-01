@@ -42,38 +42,32 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
 
         """
         #self.initial_weights = self.initialize_weights() if initial_weights is None else initial_weights
-
+        # start initailize data
         length = 2 * len(X) if self.hidden_layer_widths is None else self.hidden_layer_width
 
         ones = np.ones((len(X), 1))
         X = np.concatenate((X, ones), axis=1) # add bias
         width = len(X)
         hidden_layer_weights = np.random.rand(-1, 1, (length, width))
+        hidden_layer_old_delta_weights = np.zeros(length, width)
+
 
         length = len(y)
         width = len(hidden_layer_weights)+1 # include bias
         output_layer_weights = np.random.uniform(-1, 1, (length, width))
-        
+        output_layer_old_delta_weights= np.zeros(length, width)
         if initial_weights is not None:
             hidden_layer_weights = self.initialize_weights(hidden_layer_weights, initial_weights['hidden'])
             output_layer_weights = self.initialize_weights(output_layer_weights, initial_weights['output'])
-        hidden_layer_net = len(hidden_layer_weights)
-        output_layer_net = len(output_layer_weights)
-        hidden_layer_z = len(hidden_layer_weights)
-        output_layer_z = len(output_layer_weights)
-        output_layer_z_binary = len(output_layer_weights)
 
-        # start calculate Z
-        for z, net, weights, input in zip(hidden_layer_z, hidden_layer_net, hidden_layer_weights, X):
-            net = np.dot(input, weights)
-            z = self.fnet(net)
-        for z, net, weights,  input in zip(output_layer_z, output_layer_net, output_layer_weights, hidden_layer_z):
-            net = np.dot(input, weights)
-            z = self.fnet(net)
-        output_layer_z_binary = np.around(output_layer_z)
-        # end Calculate Z
+        # end initailize data
 
-        # start Calculate delta
+        for x in X:
+            hidden_layer_net, output_layer_net, hidden_layer_z, output_layer_z, output_layer_z_binary = self.calculate_Z(hidden_layer_weights, x, output_layer_weights)
+
+
+        # start Calculate delta weights
+        hidden_layer_delta_weights, output_layer_delta_weights =self.calculate_delta_weights(hidden_layer_z,output_layer_z,hidden_layer_net,output_layer_net,hidden_layer_weights,output_layer_weights,x, y)
 
         return self
 
@@ -136,3 +130,56 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         Z = self.fnet(net)
         return Z * (1 - Z)
         pass
+
+    def output_delta(self,T,z,net):
+        return (T-z)*self.fprime(net)
+        pass
+
+    def calculate_Z(self,hidden_layer_weights, x, output_layer_weights):
+        hidden_layer_net = np.zeros(len(hidden_layer_weights))
+        output_layer_net = np.zeros(len(output_layer_weights))
+        hidden_layer_z = np.zeros(len(hidden_layer_weights))
+        output_layer_z = np.zeros(len(output_layer_weights))
+        output_layer_z_binary = np.zeros(len(output_layer_weights))
+
+        for z, net, weights in zip(hidden_layer_z, hidden_layer_net, hidden_layer_weights):
+            net = np.dot(x, weights)
+            z = self.fnet(net)
+        for z, net, weights,  input in zip(output_layer_z, output_layer_net, output_layer_weights, hidden_layer_z):
+            net = np.dot(input, weights)
+            z = self.fnet(net)
+        output_layer_z_binary = np.around(output_layer_z)
+
+        return hidden_layer_net, output_layer_net, hidden_layer_z, output_layer_z, output_layer_z_binary
+
+    def calculate_delta(self,hidden_layer_z,output_layer_z,hidden_layer_net,output_layer_net,hidden_layer_weights, y):
+
+        output_layer_delta = np.zeros(len(output_layer_z))
+        hidden_layer_delta = np.zeros(len(hidden_layer_z))
+        # calculate output layer delta
+        for target, z, net, delta in zip(y, output_layer_z, output_layer_net, output_layer_delta):
+            delta = self.output_delta(target, z, net)
+        # calculate hidden layer delta
+        for delta, weights, net in zip(output_layer_delta, hidden_layer_weights, hidden_layer_net):
+            sum = 0
+            for w in weights:
+                sum += delta * w
+            delta = sum * self.fprime(net)
+
+        return hidden_layer_delta, output_layer_delta
+
+    def calculate_delta_weights(self,hidden_layer_z,output_layer_z,hidden_layer_net,output_layer_net,hidden_layer_weights,output_layer_weights,x, y,hidden_layer_old_delta_weights,output_layer_old_delta_weights):
+
+        hidden_layer_delta_weights = hidden_layer_weights
+        output_layer_delta_weights = output_layer_weights
+
+        output_layer_delta, hidden_layer_delta =self.calculate_delta(hidden_layer_z,output_layer_z,hidden_layer_net,output_layer_net,hidden_layer_weights, y,)
+
+        for delta_weights, delta, old_delta_weights in zip(output_layer_delta_weights,  output_layer_delta, output_layer_old_delta_weights):
+            for delta_weight, z, old_delta_weight in zip(delta_weights, hidden_layer_z, old_delta_weights):
+                delta_weight = self.lr*delta*z+self.momentum*old_delta_weight
+        for delta_weights, delta, old_delta_weights in zip(hidden_layer_delta_weights, hidden_layer_delta, hidden_layer_old_delta_weights):
+            for delta weight, z, old_delta_weight in zip(delta_weights, x, old_delta_weights): ## only current row of X
+                delta_weight = self.lr*delta*z+self.momentum*old_delta_weight
+                
+        return hidden_layer_delta_weights, output_layer_delta_weights
