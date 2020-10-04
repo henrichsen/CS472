@@ -51,18 +51,18 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         X = X[:divide]
         y = y[:divide]
 
-        length = 2 * len(X) if self.hidden_layer_widths is None else self.hidden_layer_width
+        length = 2 * len(X[0]) if self.hidden_layer_widths is None else self.hidden_layer_width
 
         ones = np.ones((len(X), 1))
         X = np.concatenate((X, ones), axis=1) # add bias
-        width = len(X)
+        width = len(X[0])
         hidden_layer_weights = np.random.rand(length, width)*2-1
         hidden_layer_old_delta_weights = np.zeros((length, width))
 
 
-        length = len(y)
-        width = len(hidden_layer_weights)+1 # include bias
-        output_layer_weights = np.random.uniform(-1, 1, (length, width))
+        length = len(y[0])
+        width = len(hidden_layer_weights[0])+1 # include bias
+        output_layer_weights = np.random.uniform(-1, 1, (length, width))*2-1
         output_layer_old_delta_weights= np.zeros((length, width))
         if initial_weights is not None:
             hidden_layer_weights = self.initialize_weights(hidden_layer_weights, initial_weights['hidden'])
