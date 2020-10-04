@@ -185,9 +185,10 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         output_layer_z = np.zeros(len(output_layer_weights))
         output_layer_z_binary = np.zeros(len(output_layer_weights))
 
-        for z, net, weights in zip(hidden_layer_z, hidden_layer_net, hidden_layer_weights):
-            net = np.dot(x, weights)
-            z = self.fnet(net)
+        for i in range(len(hidden_layer_weights)):
+            hidden_layer_net[i] = np.dot(x, hidden_layer_weights[i])
+            hidden_layer_z[i] = self.fnet(hidden_layer_net[i])
+        ## debugged to here
         for z, net, weights,  input in zip(output_layer_z, output_layer_net, output_layer_weights, hidden_layer_z):
             net = np.dot(input, weights)
             z = self.fnet(net)
