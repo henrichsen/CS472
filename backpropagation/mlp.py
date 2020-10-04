@@ -12,7 +12,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 
 class MLPClassifier(BaseEstimator, ClassifierMixin):
 
-    def __init__(self, lr=.1, momentum=0, shuffle=True, hidden_layer_widths=None):
+    def __init__(self, lr=.1, momentum=0, shuffle=True, hidden_layer_widths = None):
         """ Initialize class with chosen hyperparameters.
 
         Args:
@@ -24,12 +24,12 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         Example:
             mlp = MLPClassifier(lr=.2,momentum=.5,shuffle=False,hidden_layer_widths = [3,3]),  <--- this will create a model with two hidden layers, both 3 nodes wide
         """
-        self.hidden_layer_widths
+        self.hidden_layer_widths = hidden_layer_widths
         self.lr = lr
         self.momentum = momentum
         self.shuffle = shuffle
 
-    def fit(self, X, y, initial_weights=None):
+    def fit(self, X, y, initial_weights = None):
         """ Fit the data; run the algorithm and adjust the weights to find a good solution
 
         Args:
@@ -56,14 +56,14 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         ones = np.ones((len(X), 1))
         X = np.concatenate((X, ones), axis=1) # add bias
         width = len(X)
-        hidden_layer_weights = np.random.rand(-1, 1, (length, width))
-        hidden_layer_old_delta_weights = np.zeros(length, width)
+        hidden_layer_weights = np.random.rand(length, width)*2-1
+        hidden_layer_old_delta_weights = np.zeros((length, width))
 
 
         length = len(y)
         width = len(hidden_layer_weights)+1 # include bias
         output_layer_weights = np.random.uniform(-1, 1, (length, width))
-        output_layer_old_delta_weights= np.zeros(length, width)
+        output_layer_old_delta_weights= np.zeros((length, width))
         if initial_weights is not None:
             hidden_layer_weights = self.initialize_weights(hidden_layer_weights, initial_weights['hidden'])
             output_layer_weights = self.initialize_weights(output_layer_weights, initial_weights['output'])
@@ -153,7 +153,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
             It might be easier to concatenate X & y and shuffle a single 2D array, rather than
              shuffling X and y exactly the same way, independently.
         """
-        indices = np.arrange(len(y))
+        indices = np.arange(len(y))
         np.random.shuffle(indices)
         X = X[indices]
         y = y[indices]
@@ -222,7 +222,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
             for delta_weight, z, old_delta_weight in zip(delta_weights, hidden_layer_z, old_delta_weights):
                 delta_weight = self.lr*delta*z+self.momentum*old_delta_weight
         for delta_weights, delta, old_delta_weights in zip(hidden_layer_delta_weights, hidden_layer_delta, hidden_layer_old_delta_weights):
-            for delta weight, z, old_delta_weight in zip(delta_weights, x, old_delta_weights): ## only current row of X
+            for delta_weight, z, old_delta_weight in zip(delta_weights, x, old_delta_weights): ## only current row of X
                 delta_weight = self.lr*delta*z+self.momentum*old_delta_weight
 
         return hidden_layer_delta_weights, output_layer_delta_weights,
