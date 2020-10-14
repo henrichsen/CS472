@@ -45,13 +45,13 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         # start initailize data
         if self.shuffle:
             X, y = self._shuffle_data(X, y)
-        divide = int(.75 * len(X))
+        divide = int(.9 * len(X))
         ValidationX = X[divide:]
         Validationy = y[divide:]
         X = X[:divide]
         y = y[:divide]
 
-        length = 2 * len(X[0]) if self.hidden_layer_widths is None else self.hidden_layer_width
+        length = 2 * len(X[0]) if self.hidden_layer_widths is None else self.hidden_layer_widths
 
         ones = np.ones((len(X), 1))
         X = np.concatenate((X, ones), axis=1)  # add bias
@@ -74,7 +74,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         while iterations_without_improvement < 25:
             ## inside while statement
             epoch_number += 1
-            for x, y_ in zip(X,y):
+            for x, y_ in zip(X, y):
                 hidden_layer_net, output_layer_net, hidden_layer_z, output_layer_z, output_layer_z_binary = self.calculate_Z(
                     hidden_layer_weights, x, output_layer_weights)
                 # start calculate new weights
@@ -91,10 +91,14 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
                 output_layer_weights += output_layer_delta_weights
                 hidden_layer_old_delta_weights = hidden_layer_delta_weights
                 output_layer_old_delta_weights = output_layer_delta_weights
+                #tempX = X[:, :-1]
+                #current_accuracy = self.score(tempX, y, hidden_layer_weights, output_layer_weights)
+                #print(current_accuracy)
             # end calculate new weights
             ##debug to here
             # start stopping criteria
             current_accuracy = self.score(ValidationX, Validationy, hidden_layer_weights, output_layer_weights)
+            test_accuracy = self.score(X[:,:-1], y, hidden_layer_weights, output_layer_weights)
             if current_accuracy > best_accuracy:
                 best_accuracy = current_accuracy
                 iterations_without_improvement = 0
@@ -103,23 +107,24 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
             # end stopping criteria
             if self.shuffle:
                 X, y = self._shuffle_data(X, y)
-            print('Epoch number: ' + str(epoch_number))  ## for testing
-            print('Hidden layer weights: ')
-            print(hidden_layer_weights)
-            print('Output layer weights: ')
-            print(output_layer_weights)  ## end for testing
+
+            print('Epoch number: ' + str(epoch_number) + ' With a validation accuracy of: ' + str(current_accuracy)+' and a training accuracy of: '+str(test_accuracy))  ## for testing
+            #print('Hidden layer weights: ')
+            #print(hidden_layer_weights)
+            #print('Output layer weights: ')
+            #print(output_layer_weights)  ## end for testing
         # end while
-        print('In ' + str(epoch_number) + ' epochs, we obtained a accuracy of ' + str(
-            current_accuracy) + ' with a learning rate of ' + str(self.lr) + ' and a momentum of ' + str(
+        print('In ' + str(epoch_number) + ' epochs, we obtained a validation accuracy of ' + str(
+            current_accuracy) + ' and a training accuracy of '+str(test_accuracy)+' with a learning rate of ' + str(self.lr) + ' and a momentum of ' + str(
             self.momentum) + '.')
         print('Hidden layer weights: ')
         print(hidden_layer_weights)
         print('Output layer weights: ')
         print(output_layer_weights)
-        # return hidden_layer_weights, output_layer_weights
-        return self
+        return hidden_layer_weights, output_layer_weights
+        #return self
 
-    def predict(self, X):
+    def predict(self, X,hidden_layer_weights=None,output_layer_weights=None):
         """ Predict all classes for a dataset X
         Args:
             X (array-like): A 2D numpy array with the training data, excluding targets
@@ -127,6 +132,13 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
             array, shape (n_samples,)
                 Predicted target values per element in X.
         """
+        if hidden_layer_weights is None or output_layer_weights is None:
+            return -999
+        for x, target in zip(X, y):
+            x = np.concatenate((x, [1]), axis=0)
+            hidden_layer_net, output_layer_net, hidden_layer_z, output_layer_z, output_layer_z_binary = self.calculate_Z(
+                hidden_layer_weights, x, output_layer_weights)
+        return output_layer_z_binary
         pass
 
     def initialize_weights(self, weights=None, initial_weights=None):
@@ -135,9 +147,10 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         Returns:
 
         """
+        print(str(len(weights)) + '  ' + str(len(initial_weights)))
         assert len(weights) == len(initial_weights)
         assert len(weights[0]) == len(initial_weights[0])
-        return initial_weights
+        return np.array(initial_weights, dtype=float)
 
     def score(self, X, y, hidden_layer_weights=None, output_layer_weights=None):
         """ Return accuracy of model on a given dataset. Must implement own score function.
@@ -150,16 +163,15 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
             score : float
                 Mean accuracy of self.predict(X) wrt. y.
         """
-        correct = 0
+        incorrect = 0.
         if hidden_layer_weights is None or output_layer_weights is None:
-            return 0
+            return -999
         for x, target in zip(X, y):
             x = np.concatenate((x, [1]), axis=0)
             hidden_layer_net, output_layer_net, hidden_layer_z, output_layer_z, output_layer_z_binary = self.calculate_Z(
                 hidden_layer_weights, x, output_layer_weights)
-            if output_layer_z_binary == target:
-                correct += 1
-        return correct / len(y)
+            incorrect += np.abs(output_layer_z_binary-target).sum()
+        return 1-(incorrect / (len(y)*len(y[0])))
 
     def _shuffle_data(self, X, y):
         """ Shuffle the data! This _ prefix suggests that this method should only be called internally.
@@ -221,7 +233,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         # calculate output layer delta
         for i in range(len(y)):
             output_layer_delta[i] = self.output_delta(y[i], output_layer_z[i], output_layer_net[i])
-        #for target, z, net, delta in zip(y, output_layer_z, output_layer_net, output_layer_delta):
+        # for target, z, net, delta in zip(y, output_layer_z, output_layer_net, output_layer_delta):
         #    delta = self.output_delta(target, z, net)
 
         # calculate hidden layer delta
@@ -229,9 +241,9 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         for j in range(len(hidden_layer_delta)):
             sum = 0
             for k in range(len(output_layer_weights)):
-                sum += output_layer_delta[k]*output_layer_weights[k][j]
-            hidden_layer_delta[j] = sum*self.fprime(hidden_layer_net[j])
-        #for delta, weights, net in zip(hidden_layer_delta, output_layer_weights, hidden_layer_net):
+                sum += output_layer_delta[k] * output_layer_weights[k][j]
+            hidden_layer_delta[j] = sum * self.fprime(hidden_layer_net[j])
+        # for delta, weights, net in zip(hidden_layer_delta, output_layer_weights, hidden_layer_net):
         #    sum = 0
         #    for w in weights:
         #        sum += delta * w
@@ -242,25 +254,27 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
                                 hidden_layer_weights, output_layer_weights, x, y, hidden_layer_old_delta_weights,
                                 output_layer_old_delta_weights):
 
-        hidden_layer_delta_weights = hidden_layer_weights
-        output_layer_delta_weights = output_layer_weights
+        hidden_layer_delta_weights = np.array(hidden_layer_weights, copy=True, dtype=float)
+        output_layer_delta_weights = np.array(output_layer_weights, copy=True, dtype=float)
 
         hidden_layer_delta, output_layer_delta = self.calculate_delta(hidden_layer_z, output_layer_z, hidden_layer_net,
                                                                       output_layer_net, output_layer_weights, y, )
 
         for i in range(len(output_layer_delta_weights)):
-            for j in range((len(output_layer_delta_weights[i][:-1]))):
-                output_layer_delta_weights[i][j] = self.lr*output_layer_delta[i]*hidden_layer_z[j] + self.momentum*output_layer_old_delta_weights[i][j]
-            output_layer_delta_weights[i][-1] = self.lr*output_layer_delta[i]*1 + self.momentum*output_layer_old_delta_weights[i][-1]
-        #for delta_weights, delta, old_delta_weights in zip(output_layer_delta_weights, output_layer_delta,
+            for j in range(output_layer_delta_weights.shape[1]-1):
+                without_momentum =self.lr * output_layer_delta[i] * hidden_layer_z[j]
+                momentum = self.momentum * output_layer_old_delta_weights[i][j]
+                output_layer_delta_weights[i, j] = without_momentum + momentum
+            output_layer_delta_weights[i,-1] = self.lr * output_layer_delta[i] * 1 + self.momentum * output_layer_old_delta_weights[i][-1]
+        # for delta_weights, delta, old_delta_weights in zip(output_layer_delta_weights, output_layer_delta,
         #                                                   output_layer_old_delta_weights):
         #    for delta_weight, z, old_delta_weight in zip(delta_weights, hidden_layer_z, old_delta_weights):
         #        delta_weight = self.lr * delta * z + self.momentum * old_delta_weight
         for i in range(len(hidden_layer_delta_weights)):
             for j in range((len(hidden_layer_delta_weights[i]))):
-                hidden_layer_delta_weights[i][j] = self.lr*hidden_layer_delta[i]*x[j]\
-                                                 + self.momentum*hidden_layer_delta_weights[i][j]
-        #for delta_weights, delta, old_delta_weights in zip(hidden_layer_delta_weights, hidden_layer_delta,
+                hidden_layer_delta_weights[i][j] = self.lr * hidden_layer_delta[i] * x[j] \
+                                                   + self.momentum * hidden_layer_delta_weights[i][j]
+        # for delta_weights, delta, old_delta_weights in zip(hidden_layer_delta_weights, hidden_layer_delta,
         #                                                   hidden_layer_old_delta_weights):
         #    for delta_weight, z, old_delta_weight in zip(delta_weights, x, old_delta_weights):  ## only current row of X
         #        delta_weight = self.lr * delta * z + self.momentum * old_delta_weight
