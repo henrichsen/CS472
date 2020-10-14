@@ -45,7 +45,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         # start initailize data
         if self.shuffle:
             X, y = self._shuffle_data(X, y)
-        divide = int(.9 * len(X))
+        divide = int(.75 * len(X))
         ValidationX = X[divide:]
         Validationy = y[divide:]
         X = X[:divide]
@@ -89,8 +89,9 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
                                                                                                       output_layer_old_delta_weights)
                 hidden_layer_weights += hidden_layer_delta_weights
                 output_layer_weights += output_layer_delta_weights
-                hidden_layer_old_delta_weights = hidden_layer_delta_weights
-                output_layer_old_delta_weights = output_layer_delta_weights
+                hidden_layer_old_delta_weights = np.array(hidden_layer_delta_weights, copy=True)
+                output_layer_old_delta_weights = np.array(output_layer_delta_weights, copy=True)
+                #print(hidden_layer_weights)
                 #tempX = X[:, :-1]
                 #current_accuracy = self.score(tempX, y, hidden_layer_weights, output_layer_weights)
                 #print(current_accuracy)
@@ -108,11 +109,12 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
             if self.shuffle:
                 X, y = self._shuffle_data(X, y)
 
+            #print('Epoch number: ' + str(epoch_number))
             print('Epoch number: ' + str(epoch_number) + ' With a validation accuracy of: ' + str(current_accuracy)+' and a training accuracy of: '+str(test_accuracy))  ## for testing
-            #print('Hidden layer weights: ')
-            #print(hidden_layer_weights)
-            #print('Output layer weights: ')
-            #print(output_layer_weights)  ## end for testing
+            print('Hidden layer weights: ')
+            print(hidden_layer_weights)
+            print('Output layer weights: ')
+            print(output_layer_weights)  ## end for testing
         # end while
         print('In ' + str(epoch_number) + ' epochs, we obtained a validation accuracy of ' + str(
             current_accuracy) + ' and a training accuracy of '+str(test_accuracy)+' with a learning rate of ' + str(self.lr) + ' and a momentum of ' + str(
@@ -147,7 +149,6 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         Returns:
 
         """
-        print(str(len(weights)) + '  ' + str(len(initial_weights)))
         assert len(weights) == len(initial_weights)
         assert len(weights[0]) == len(initial_weights[0])
         return np.array(initial_weights, dtype=float)
@@ -171,6 +172,8 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
             hidden_layer_net, output_layer_net, hidden_layer_z, output_layer_z, output_layer_z_binary = self.calculate_Z(
                 hidden_layer_weights, x, output_layer_weights)
             incorrect += np.abs(output_layer_z_binary-target).sum()
+        #print("incorrect: "+str(incorrect))
+        #print(len(y)*len(y[0]))
         return 1-(incorrect / (len(y)*len(y[0])))
 
     def _shuffle_data(self, X, y):
@@ -186,11 +189,19 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         pass
 
     ### Not required by sk-learn but required by us for grading. Returns the weights.
-    def get_weights(self):
+    ## I Don't Know how you expect us to get weights without adding class variables or a required input
+    def get_weights(self,weight=None):
+        if weight is None:
+            return -999
+        return weight['hidden'], weight['output']
         pass
 
     def fnet(self, net):
         Zj = 1 / (1 + np.exp(-net))
+        if np.isnan(Zj):
+            Zj=.5
+        assert not np.isnan(Zj)
+        assert np.isfinite(Zj)
         return Zj
         pass
 
@@ -265,6 +276,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
                 without_momentum =self.lr * output_layer_delta[i] * hidden_layer_z[j]
                 momentum = self.momentum * output_layer_old_delta_weights[i][j]
                 output_layer_delta_weights[i, j] = without_momentum + momentum
+                #print(momentum)
             output_layer_delta_weights[i,-1] = self.lr * output_layer_delta[i] * 1 + self.momentum * output_layer_old_delta_weights[i][-1]
         # for delta_weights, delta, old_delta_weights in zip(output_layer_delta_weights, output_layer_delta,
         #                                                   output_layer_old_delta_weights):
@@ -273,7 +285,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         for i in range(len(hidden_layer_delta_weights)):
             for j in range((len(hidden_layer_delta_weights[i]))):
                 hidden_layer_delta_weights[i][j] = self.lr * hidden_layer_delta[i] * x[j] \
-                                                   + self.momentum * hidden_layer_delta_weights[i][j]
+                                                   + self.momentum * hidden_layer_old_delta_weights[i][j]
         # for delta_weights, delta, old_delta_weights in zip(hidden_layer_delta_weights, hidden_layer_delta,
         #                                                   hidden_layer_old_delta_weights):
         #    for delta_weight, z, old_delta_weight in zip(delta_weights, x, old_delta_weights):  ## only current row of X
