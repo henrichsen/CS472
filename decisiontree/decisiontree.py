@@ -26,7 +26,7 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
             [0,0,1,1]]
 
         """
-        self.tree=dict()
+        self.tree = dict()
 
     def fit(self, X, y):
         """ Fit the data; Make the Desicion tree
@@ -39,18 +39,18 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
             self: this allows this to be chained, e.g. model.fit(X,y).predict(X_test)
 
         """
-        if len(X[0]) == 0: # if no more attributes return most common output
+        if len(X[0]) == 0:  # if no more attributes return most common output
             value, count = np.unique(y, return_counts=True)
             return value[np.argmax(count)]
-        if self.info(y) == 0: # if node is pure return output
+        if self.info(y) == 0:  # if node is pure return output
             return y[0]
 
         # if neither condition split by attribute
 
         split_index = self.get_best_attribute(X, y)
         self.tree[split_index] = self.get_values(X, split_index)
-        for value in range(self.tree[split_index]):
-            self.tree[split_index][value] = self.fit(self.split_by_value(X, y, split_index, value))
+        for value in (self.tree[split_index]):
+            self.tree[split_index][value] = self.fit(*self.split_by_value(X, y, split_index, value))
         print(self.tree)
         return self
 
@@ -79,7 +79,7 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
         # return index of best attribute to split
         info_array = np.zeros(len(X[0]))
         for i in range(len(X[0, :])):
-            info_array[i] = self.info_A(X[0:i], y)
+            info_array[i] = self.info_A(X[:, i], y)
 
         least_info = int(np.argmin(info_array))
         return least_info
@@ -90,17 +90,17 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
         values = np.unique(attribute_list)
 
         for A in values:
-            yj = np.array()
+            yj = np.array(0)
             boolean_A = attribute_list == A
             for b_a, y_ in zip(boolean_A, y):
                 if b_a:
-                    yj.append(y_)
+                    yj = np.append(yj, y_)
             info += len(yj) / len(attribute_list) * self.info(yj)
 
         return info
 
     def info(self, yj):
-        outputs = np.unique(y)
+        outputs = np.unique(yj)
         sum = 0
 
         for C in outputs:
@@ -113,10 +113,10 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
         divided_X = np.array(1)
         divided_Y = np.array(1)
         same_value = (value == X[:, index])
-        for i in same_value:
+        for i in range(len(same_value)):
             if same_value[i]:
-                divided_X.append(X[i])
-                divided_Y.append(y[i])
+                divided_X = np.append(divided_X, X[i])
+                divided_Y = np.append(divided_Y, y[i])
         return divided_X, divided_Y
 
     def get_values(self, X, index):
