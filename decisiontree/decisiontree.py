@@ -51,6 +51,7 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
         self.tree[split_index] = self.get_values(X, split_index)
         for value in range(self.tree[split_index]):
             self.tree[split_index][value] = self.fit(self.split_by_value(X, y, split_index, value))
+        print(self.tree)
         return self
 
     def predict(self, X):
