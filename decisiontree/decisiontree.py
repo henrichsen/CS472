@@ -1,11 +1,14 @@
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
-
+from collections import namedtuple
 
 ### NOTE: The only methods you are required to have are:
 #   * predict
 #   * fit
 #   * score
+
+treeNode = namedtuple('treeNode', ['attribute_index', 'values'])
+
 
 class DTClassifier(BaseEstimator, ClassifierMixin):
 
@@ -26,7 +29,7 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
             [0,0,1,1]]
 
         """
-        self.tree = dict()
+        self.tree = tuple()
 
     def fit(self, X, y):
         """ Fit the data; Make the Desicion tree
@@ -39,7 +42,14 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
             self: this allows this to be chained, e.g. model.fit(X,y).predict(X_test)
 
         """
-        if len(X[0]) == 0:  # if no more attributes return most common output
+        assert len(X) == len(y)
+        self.tree = self.make_tree(X, y)
+        print(self.tree)
+        return self
+
+    def make_tree(self, X, y):
+        assert len(X) == len(y)
+        if X.ndim != 1 and len(X[0]) == 0:  # if no more attributes return most common output
             value, count = np.unique(y, return_counts=True)
             return value[np.argmax(count)]
         if self.info(y) == 0:  # if node is pure return output
@@ -48,11 +58,10 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
         # if neither condition split by attribute
 
         split_index = self.get_best_attribute(X, y)
-        self.tree[split_index] = self.get_values(X, split_index)
-        for value in (self.tree[split_index]):
-            self.tree[split_index][value] = self.fit(*self.split_by_value(X, y, split_index, value))
-        print(self.tree)
-        return self
+        tree = treeNode(split_index, dict())
+        for value in self.get_values(X, split_index):
+            tree.values[value] = self.make_tree(*self.split_by_value(X, y, split_index, value))
+        return tree
 
     def predict(self, X):
         """ Predict all classes for a dataset X
@@ -64,6 +73,10 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
             array, shape (n_samples,)
                 Predicted target values per element in X.
         """
+        y = np.zeros(len(X))
+        y = self.predict_with_tree(X, self.tree)
+
+        return y
         pass
 
     def score(self, X, y):
@@ -77,6 +90,10 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
 
     def get_best_attribute(self, X, y):
         # return index of best attribute to split
+        if X.ndim == 1:
+            Xtemp = np.zeros([1, len(X)])
+            Xtemp[0] = X
+            X = Xtemp
         info_array = np.zeros(len(X[0]))
         for i in range(len(X[0, :])):
             info_array[i] = self.info_A(X[:, i], y)
@@ -110,17 +127,31 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
         return -sum
 
     def split_by_value(self, X, y, index, value):
-        divided_X = np.array(1)
-        divided_Y = np.array(1)
+        if X.ndim <= 1:
+            X = X[:, None]
         same_value = (value == X[:, index])
-        for i in range(len(same_value)):
-            if same_value[i]:
-                divided_X = np.append(divided_X, X[i])
-                divided_Y = np.append(divided_Y, y[i])
+        divided_X = X[same_value]
+        divided_Y = y[same_value]
+
+        divided_X = np.delete(divided_X, index, 1)
+
         return divided_X, divided_Y
 
     def get_values(self, X, index):
+        if X.ndim <= 1:
+            return np.unique(X)
         return np.unique(X[:, index])
+
+    def predict_with_tree(self, X, tree):
+
+        if isinstance(tree, (float, int)):
+            return tree * np.ones(len(X))
+        y = np.zeros(len(X))
+        for value in self.get_values(X, tree.attribute_index):
+            same_value = (value == X[:, tree.attribute_index])
+            splitX, _ = self.split_by_value(X, y, tree.attribute_index, value)
+            y[same_value] = self.predict_with_tree(splitX, tree.values[value])
+        return y
 
 
 """
