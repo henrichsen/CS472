@@ -1,13 +1,14 @@
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from collections import namedtuple
+import scipy
 
 ### NOTE: The only methods you are required to have are:
 #   * predict
 #   * fit
 #   * score
 
-treeNode = namedtuple('treeNode', ['attribute_index', 'values'])
+treeNode = namedtuple('treeNode', ['attribute_index', 'values', 'mode'])
 
 
 class DTClassifier(BaseEstimator, ClassifierMixin):
@@ -58,7 +59,7 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
         # if neither condition split by attribute
 
         split_index = self.get_best_attribute(X, y)
-        tree = treeNode(split_index, dict())
+        tree = treeNode(split_index, dict(), scipy.stats.mode(y, 0).mode)
         for value in self.get_values(X, split_index):
             tree.values[value] = self.make_tree(*self.split_by_value(X, y, split_index, value))
         return tree
@@ -143,22 +144,16 @@ class DTClassifier(BaseEstimator, ClassifierMixin):
         return np.unique(X[:, index])
 
     def predict_with_tree(self, X, tree):
-
         if isinstance(tree, (float, int)):
             return tree * np.ones(len(X))
+
         y = np.zeros(len(X))
         for value in self.get_values(X, tree.attribute_index):
             same_value = (value == X[:, tree.attribute_index])
             splitX, _ = self.split_by_value(X, y, tree.attribute_index, value)
+            if value not in tree.values:
+                return tree.mode * np.ones(len(X))
+            assert same_value.ndim == 1
+            assert y.ndim == 1
             y[same_value] = self.predict_with_tree(splitX, tree.values[value])
         return y
-
-
-"""
-def resursive(X,y)
-
-while len(X[0]) and info(y) != 0:
-    split =self.split_by_attribute(X,y,self.get_best_attribute(X,y))
-    for s in split
-        self.recursive(s[0],s[1)
-"""
