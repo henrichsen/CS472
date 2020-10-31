@@ -5,7 +5,7 @@ import math
 
 class KNNClassifier(BaseEstimator, ClassifierMixin):
 
-    def __init__(self, columntype=[], weight_type='inverse_distance', k=-1):  ## add parameters here
+    def __init__(self, columntype=[], weight_type='inverse_distance', k=-1, normalize=False):  ## add parameters here
         """
         Args:
             columntype for each column tells you if continues[real]==0 or if nominal[categoritcal]==-1.
@@ -16,7 +16,12 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
 
         assert weight_type == "no_weight" or weight_type == "inverse_distance"
         self.weight_type = weight_type
+        assert type(k) == int
         self.k = k
+        assert type(normalize) == bool
+        self.normal = normalize
+        self.Inputs = None
+        self.Outputs = None
 
     def fit(self, X, y):
         """ Fit the data; run the algorithm (for this lab really just saves the data :D)
@@ -26,7 +31,10 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             self: this allows this to be chained, e.g. model.fit(X,y).predict(X_test)
         """
-        self.Inputs = X
+        if self.normal:
+            self.Inputs = self.normalize(X)
+        else:
+            self.Inputs = X
         self.Outputs = y
         return self
 
@@ -38,6 +46,8 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
             array, shape (n_samples,)
                 Predicted target values per element in X.
         """
+        if self.normal:
+            X = self.normalize(X)
         if self.k <= 0 or self.k > len(X):
             self.k = len(X)
         y = np.zeros([len(X), len(np.unique(self.Outputs))])
@@ -88,7 +98,7 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
                     distance[row] += 1
                 elif self.columntype[column] == 0:  # if value is real
                     squared_distance += (input[column] - array[row][column]) ** 2
-                elif self.columntype[column] == -1:  # if value is catagorical
+                elif self.columntype[column] == -1:  # if value is categorical
                     if input[column] == array[row][column]:
                         distance[row] += 0
                     else:
