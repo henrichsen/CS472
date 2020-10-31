@@ -38,21 +38,21 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
             array, shape (n_samples,)
                 Predicted target values per element in X.
         """
-        if self.k <= 0:
+        if self.k <= 0 or self.k > len(X):
             self.k = len(X)
         y = np.zeros([len(X), len(np.unique(self.Outputs))])
         ymax = np.zeros(len(y))
-        for i in range(len(X)):
-            distances = self.calculate_distance(X[i], self.Inputs)
+        for row in range(len(X)):
+            distances = self.calculate_distance(X[row], self.Inputs)
             sort = np.argsort(distances)
             distances = distances[sort]
             self.Inputs = self.Inputs[sort]
             self.Outputs = self.Outputs[sort]
             for k in range(self.k - 1):
                 value = int(self.Outputs[k])
-                y[i][value] += self.calculate_weight(distances[k])
-        for i in range(len(y)):
-            ymax[i] = np.argmax(y[i])
+                y[row][value] += self.calculate_weight(distances[k])
+        for row in range(len(y)):
+            ymax[row] = np.argmax(y[row])
         return ymax
 
         pass
@@ -68,12 +68,12 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
                             Mean accuracy of self.predict(X) wrt. y.
             """
             guess = self.predict(X)
-            count=0;
-            for i in range(len(y)):
-                if (y[i]==guess[i]):
-                    count+=1
+            count = 0;
+            for row in range(len(y)):
+                if (y[row] == guess[row]):
+                    count += 1
 
-        return count/len(y)
+        return count / len(y)
 
     def calculate_distance(self, input, array):
         assert input.ndim == 1
@@ -81,19 +81,19 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
         assert len(input) == len(array[0])
         distance = np.zeros([len(array)])
 
-        for i in range(len(array)):
+        for row in range(len(array)):
             squared_distance = 0
-            for j in range(len(input)):
-                if np.isnan(array[i][j]):  # if value unknown
-                    distance[i] += 1
-                elif self.columntype[j] == 0:  # if value is real
-                    squared_distance += (input[j] - array[i][j]) ** 2
-                elif self.columntype[j] == -1:  # if value is catagorical
-                    if input[j] == array[i][j]:
-                        distance[i] += 0
+            for column in range(len(input)):
+                if np.isnan(array[row][column]):  # if value unknown
+                    distance[row] += 1
+                elif self.columntype[column] == 0:  # if value is real
+                    squared_distance += (input[column] - array[row][column]) ** 2
+                elif self.columntype[column] == -1:  # if value is catagorical
+                    if input[column] == array[row][column]:
+                        distance[row] += 0
                     else:
-                        distance[i] += 1
-            distance[i] += math.sqrt(squared_distance)
+                        distance[row] += 1
+            distance[row] += math.sqrt(squared_distance)
 
         return distance
 
@@ -102,3 +102,15 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
             return 1
         elif self.weight_type == 'inverse_distance':
             return 1 / distance
+
+    def normalize(self, array2d):
+        max = np.zeros(len(array2d[:]))
+        min = np.zeros(len(array2d[:]))
+        for column in range(len(array2d[:])):
+            if self.columntype[column] == -1:
+                continue
+            max[column] = np.argmax(array2d[:, column])
+            min[column] = np.argmin(array2d[:, column])
+            for row in range(len(array2d)):
+                array2d[row][column] = (array2d[row][column] - min[column]) / (max[column] - min[column])
+        return array2d
