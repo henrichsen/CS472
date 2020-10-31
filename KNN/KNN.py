@@ -51,10 +51,8 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
             for k in range(self.k - 1):
                 value = int(self.Outputs[k])
                 y[i][value] += self.calculate_weight(distances[k])
-        print(y)
         for i in range(len(y)):
             ymax[i] = np.argmax(y[i])
-        print(ymax)
         return ymax
 
         pass
@@ -69,9 +67,13 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
                     score : float
                             Mean accuracy of self.predict(X) wrt. y.
             """
-            
+            guess = self.predict(X)
+            count=0;
+            for i in range(len(y)):
+                if (y[i]==guess[i]):
+                    count+=1
 
-        return 0
+        return count/len(y)
 
     def calculate_distance(self, input, array):
         assert input.ndim == 1
