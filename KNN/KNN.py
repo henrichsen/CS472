@@ -114,13 +114,15 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
             return 1 / distance
 
     def normalize(self, array2d):
-        max = np.zeros(len(array2d[:]))
-        min = np.zeros(len(array2d[:]))
-        for column in range(len(array2d[:])):
+        max = np.zeros(len(array2d[0]))
+        min = np.zeros(len(array2d[0]))
+
+        for column in range(len(array2d[0])):
             if self.columntype[column] == -1:
                 continue
-            max[column] = np.argmax(array2d[:, column])
-            min[column] = np.argmin(array2d[:, column])
+            max[column] = np.max(array2d[:, column])
+            min[column] = np.min(array2d[:, column])
             for row in range(len(array2d)):
                 array2d[row][column] = (array2d[row][column] - min[column]) / (max[column] - min[column])
+
         return array2d
