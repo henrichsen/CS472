@@ -54,17 +54,22 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
             self.k = len(self.Inputs_n) - 1
         y = np.zeros([len(X), len(np.unique(self.Outputs))])
         ymax = np.zeros(len(y))
+        yregress = np.zeros(len(y))
         for row in range(len(X)):
             distances = self.calculate_distance(X[row], self.Inputs_n)
             sort = np.argpartition(distances, self.k)
             distance = distances[sort]
             outputs = self.Outputs[sort]
+            weight = 0
             for k in range(self.k - 1):
                 value = int(outputs[k])
-                # ymax += self.calculate_weight(distance[k])*value regression
+                weight += self.calculate_weight(distance[k])
+                yregress[row] += self.calculate_weight(distance[k]) * value
                 y[row][value] += self.calculate_weight(distance[k])
             ymax[row] = np.argmax(y[row])  # classification
+            yregress[row] /= weight
         print('predicted')
+        #return yregress
         return ymax
 
         pass
@@ -83,9 +88,13 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
         guess = self.predict(X)
         # np.savetxt("evaluation_output.csv", guess, delimiter=",") # save guess
         count = 0
+        error = 0
         for row in range(len(y)):
+            error += (y[row] - guess[row]) ** 2
             if (y[row] == guess[row]):
                 count += 1
+        error = error / len(y)
+#        return np.sqrt([error])
         return count / len(y)
 
     def calculate_distance(self, input, array):
