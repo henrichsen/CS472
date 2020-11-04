@@ -22,6 +22,7 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
         self.normal = normalize
         self.Inputs = None
         self.Outputs = None
+        self.Inputs_n = self.Inputs
 
     def fit(self, X, y):
         """ Fit the data; run the algorithm (for this lab really just saves the data :D)
@@ -48,26 +49,28 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
             X = self.normalize(X)
             print('Normal')
         else:
-            self.Inputs_n =self.Inputs
+            self.Inputs_n = self.Inputs
         if self.k <= 0 or self.k > len(X):
-            self.k = len(X)
+            self.k = len(self.Inputs_n) - 1
         y = np.zeros([len(X), len(np.unique(self.Outputs))])
         ymax = np.zeros(len(y))
         for row in range(len(X)):
             distances = self.calculate_distance(X[row], self.Inputs_n)
-            sort = np.argpartition(distances,self.k)
+            sort = np.argpartition(distances, self.k)
             distance = distances[sort]
             outputs = self.Outputs[sort]
             for k in range(self.k - 1):
                 value = int(outputs[k])
+                # ymax += self.calculate_weight(distance[k])*value regression
                 y[row][value] += self.calculate_weight(distance[k])
-            ymax[row] = np.argmax(y[row])
+            ymax[row] = np.argmax(y[row])  # classification
         print('predicted')
         return ymax
 
         pass
 
         # Returns the Mean score given input data and labels
+
     def score(self, X, y):
         """ Return accuracy of model on a given dataset. Must implement own score function.
         Args:
@@ -116,14 +119,16 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
     def normalize(self, array2d):
         max = np.zeros(len(array2d[0]))
         min = np.zeros(len(array2d[0]))
+        self.Inputs_n = self.Inputs
 
         for column in range(len(array2d[0])):
             if self.columntype[column] == -1:
                 continue
-            max[column] = np.max([np.max(array2d[:, column]), np.max(self.Inputs[:,column])])
-            min[column] = np.max([np.min(array2d[:, column]), np.min(self.Inputs[:,column])])
+            max[column] = np.max([np.max(array2d[:, column]), np.max(self.Inputs[:, column])])
+            min[column] = np.max([np.min(array2d[:, column]), np.min(self.Inputs[:, column])])
             for row in range(len(array2d)):
                 array2d[row][column] = (array2d[row][column] - min[column]) / (max[column] - min[column])
-                self.Inputs_n[row][column] = (self.Inputs[row][column] - min[column]) / (max[column] - min[column])
+                if row < len(self.Inputs_n):
+                    self.Inputs_n[row][column] = (self.Inputs[row][column] - min[column]) / (max[column] - min[column])
 
         return array2d
