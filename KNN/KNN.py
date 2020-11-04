@@ -31,10 +31,8 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             self: this allows this to be chained, e.g. model.fit(X,y).predict(X_test)
         """
-        if self.normal:
-            self.Inputs = self.normalize(X)
-        else:
-            self.Inputs = X
+
+        self.Inputs = X
         self.Outputs = y
         return self
 
@@ -48,41 +46,43 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
         """
         if self.normal:
             X = self.normalize(X)
+            print('Normal')
+        else:
+            self.Inputs_n =self.Inputs
         if self.k <= 0 or self.k > len(X):
             self.k = len(X)
         y = np.zeros([len(X), len(np.unique(self.Outputs))])
         ymax = np.zeros(len(y))
         for row in range(len(X)):
-            distances = self.calculate_distance(X[row], self.Inputs)
-            sort = np.argsort(distances)
-            distances = distances[sort]
-            self.Inputs = self.Inputs[sort]
-            self.Outputs = self.Outputs[sort]
+            distances = self.calculate_distance(X[row], self.Inputs_n)
+            sort = np.argpartition(distances,self.k)
+            distance = distances[sort]
+            outputs = self.Outputs[sort]
             for k in range(self.k - 1):
-                value = int(self.Outputs[k])
-                y[row][value] += self.calculate_weight(distances[k])
-        for row in range(len(y)):
+                value = int(outputs[k])
+                y[row][value] += self.calculate_weight(distance[k])
             ymax[row] = np.argmax(y[row])
+        print('predicted')
         return ymax
 
         pass
 
         # Returns the Mean score given input data and labels
-        def score(self, X, y):
-            """ Return accuracy of model on a given dataset. Must implement own score function.
-            Args:
-                    X (array-like): A 2D numpy array with data, excluding targets
-                    y (array-like): A 2D numpy array with targets
-            Returns:
-                    score : float
-                            Mean accuracy of self.predict(X) wrt. y.
-            """
-            guess = self.predict(X)
-            count = 0;
-            for row in range(len(y)):
-                if (y[row] == guess[row]):
-                    count += 1
-
+    def score(self, X, y):
+        """ Return accuracy of model on a given dataset. Must implement own score function.
+        Args:
+                X (array-like): A 2D numpy array with data, excluding targets
+                y (array-like): A 2D numpy array with targets
+        Returns:
+                score : float
+                        Mean accuracy of self.predict(X) wrt. y.
+        """
+        guess = self.predict(X)
+        # np.savetxt("evaluation_output.csv", guess, delimiter=",") # save guess
+        count = 0
+        for row in range(len(y)):
+            if (y[row] == guess[row]):
+                count += 1
         return count / len(y)
 
     def calculate_distance(self, input, array):
@@ -120,9 +120,10 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
         for column in range(len(array2d[0])):
             if self.columntype[column] == -1:
                 continue
-            max[column] = np.max(array2d[:, column])
-            min[column] = np.min(array2d[:, column])
+            max[column] = np.max([np.max(array2d[:, column]), np.max(self.Inputs[:,column])])
+            min[column] = np.max([np.min(array2d[:, column]), np.min(self.Inputs[:,column])])
             for row in range(len(array2d)):
                 array2d[row][column] = (array2d[row][column] - min[column]) / (max[column] - min[column])
+                self.Inputs_n[row][column] = (self.Inputs[row][column] - min[column]) / (max[column] - min[column])
 
         return array2d
