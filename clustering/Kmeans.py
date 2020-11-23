@@ -5,7 +5,7 @@ from sklearn.base import BaseEstimator, ClusterMixin
 
 class KMEANSClustering(BaseEstimator, ClusterMixin):
 
-    def __init__(self, k=3, debug=False):  ## add parameters here
+    def __init__(self, k=3, debug=False, tolerance=.000001):  ## add parameters here
         """
         Args:
             k = how many final clusters to have
@@ -13,6 +13,8 @@ class KMEANSClustering(BaseEstimator, ClusterMixin):
         """
         self.k = k
         self.debug = debug
+        self.centroids = None
+        self.tolerance = tolerance
 
     def fit(self, X, y=None):
         """ Fit the data; In this lab this will make the K clusters :D
@@ -24,29 +26,61 @@ class KMEANSClustering(BaseEstimator, ClusterMixin):
         """
         assert len(X) >= self.k
 
-        centroids = np.zeros([self.k, len(X[0,:])])
+        centroids = np.zeros([self.k, len(X[0, :])])
         if self.debug:
             centroids = X[:self.k, :]
         else:
+            initial_centroid_index = np.zeros(len(centroids))
             for i in range(len(centroids)):
-                newcentroid = X[random.randint(0, len(X))]
-                if newcentroid in centroids:
+                rand = random.randint(0, len(X) - 1)
+                newcentroid = X[rand]
+                if np.any(initial_centroid_index == rand):
                     i -= 1
                 else:
                     centroids[i] = newcentroid
+        repeat = True
+        i = 0
+        while repeat:
+            print(i)
+            i += 1
+            repeat = False
+            clusterid = np.zeros(len(X))
+            for row in range(len(X)):
+                distance_2_centroids = np.zeros(self.k)
+                for centroid_index in range(len(centroids)):
+                    distance_2_centroids[centroid_index] = self.calculate_distance(X[row], centroids[centroid_index])
+                clusterid[row] = np.argmin(distance_2_centroids)
+            for centroid_number in range(len(centroids)):
+                selection = clusterid == centroid_number
+                new_centroid = self.calculate_centroid(X[selection])
+                if self.compare_centroid(new_centroid, centroids[centroid_number]):
+                    repeat = True
+                centroids[centroid_number] = new_centroid
+        self.centroids = centroids
+        print('Total SSE: ')
+        data_centroid = np.zeros(len(X[0]))
+        data_centroid = self.calculate_centroid(X)[0]
+        distances = np.zeros(len(X))
+        for j in range(len(X)):
+            distances[j] = self.calculate_distance(data_centroid, X[j, :])
+        print(np.sum(distances ** 2))
+        print('Centroids: ')
         print(centroids)
-        clusterid = np.zeros(len(X))
-        for row in range(len(X)):
-            distance_2_centroids = np.zeros(self.k)
-            for centroid_index in range(len(centroids)):
-                distance_2_centroids[centroid_index] = self.calculate_distance(X[row], centroids[centroid_index])
-            clusterid[row] = np.argmin(distance_2_centroids)
-        print(clusterid)
+        print('Instances in each centroid: ')
+        for i in range(len(np.unique(clusterid))):
+            print(np.count_nonzero(clusterid == clusterid[i]))
+        print('SSE in each Cluster: ')
+        for i in range(len(centroids)):
+            values = X[clusterid == i]
+            distances = np.zeros(len(values))
+            for j in range(len(values)):
+                distances[j] = self.calculate_distance(centroids[i], values[j])
+            print(np.sum(distances ** 2))
         return self
 
     def save_clusters(self, filename):
         """
-            f = open(filename,"w+") 
+            f = open(filename,"w+")
             Used for grading.
             write("{:d}\n".format(k))
             write("{:.4f}\n\n".format(total SSE))
@@ -66,9 +100,22 @@ class KMEANSClustering(BaseEstimator, ClusterMixin):
         return distance ** .5
 
     def calculate_centroid(self, X):
-        centroid = np.zeros([1, len(X[:])])
-        for column in range(X[:]):
-            for row in range(X):
-                centroid[1, column] += X[row, column]
-            centroid[1, column] /= len(X)
+        assert len(X) > 0
+        centroid = np.zeros([1, len(X[0])])
+        for column in range(len(X[0])):
+            for row in range(len(X)):
+                centroid[0, column] += X[row, column]
+            centroid[0, column] /= len(X)
         return centroid
+
+    def compare_centroid(self, X, Y):
+        y = np.zeros([1, len(Y)])
+        y[0] = Y
+        Y = y
+        sum = 0
+        for i in range(len(X[0])):
+            sum += (X[0, i] - Y[0, i]) ** 2
+        if sum ** .5 < self.tolerance:
+            return False
+        else:
+            return True

@@ -1,4 +1,4 @@
-from Kmeans import KMEANSClustering
+from HAC import HACClustering
 import numpy as np
 from arff import Arff
 
@@ -12,6 +12,6 @@ shuffle = False
 if shuffle:
     np.random.shuffle(alldata)
 trainingdata = alldata[:split]
-testdata = alldata[split:]
-kmean = KMEANSClustering(k=3, debug=False)
-kmean.fit(testdata)
+testdata = alldata
+hac = HACClustering(k=2, link_type='complete', print_k=[1, 2, 3, 4, 5])
+hac.fit(testdata)
