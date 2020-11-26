@@ -24,7 +24,7 @@ class KMEANSClustering(BaseEstimator, ClusterMixin):
         Returns:
             self: this allows this to be chained, e.g. model.fit(X,y).predict(X_test)
         """
-        assert len(X) >= self.k
+        assert len(X) > self.k
 
         centroids = np.zeros([self.k, len(X[0, :])])
         if self.debug:
@@ -41,7 +41,7 @@ class KMEANSClustering(BaseEstimator, ClusterMixin):
         repeat = True
         i = 0
         while repeat:
-            print(i)
+            #print(i)
             i += 1
             repeat = False
             clusterid = np.zeros(len(X))

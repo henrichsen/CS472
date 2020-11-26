@@ -2,7 +2,7 @@ from Kmeans import KMEANSClustering
 import numpy as np
 from arff import Arff
 
-filepath = 'abalone.arff'
+filepath = 'iris.arff'
 af = Arff()
 af.load_arff(filepath)
 
@@ -12,6 +12,8 @@ shuffle = False
 if shuffle:
     np.random.shuffle(alldata)
 trainingdata = alldata[:split]
-testdata = alldata[split:]
-kmean = KMEANSClustering(k=3, debug=False)
-kmean.fit(testdata)
+testdata = alldata[:,:]
+for i in range(5):
+    print('run= '+str(i))
+    kmean = KMEANSClustering(k=4, debug=False)
+    kmean.fit(testdata)

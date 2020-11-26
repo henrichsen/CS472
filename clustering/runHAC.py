@@ -2,7 +2,7 @@ from HAC import HACClustering
 import numpy as np
 from arff import Arff
 
-filepath = 'abalone.arff'
+filepath = 'iris.arff'
 af = Arff()
 af.load_arff(filepath)
 
@@ -12,6 +12,6 @@ shuffle = False
 if shuffle:
     np.random.shuffle(alldata)
 trainingdata = alldata[:split]
-testdata = alldata
-hac = HACClustering(k=2, link_type='complete', print_k=[1, 2, 3, 4, 5])
+testdata = alldata[:,:]
+hac = HACClustering(k=2, link_type='single', print_k=[2, 3, 4, 5, 6, 7])
 hac.fit(testdata)

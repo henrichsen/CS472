@@ -10,6 +10,7 @@ class HACClustering(BaseEstimator, ClusterMixin):
             k = how many final clusters to have
             link_type = single or complete. when combining two clusters use complete link or single link
         """
+        assert k > 1
         assert link_type == 'single' or link_type == 'complete'
         self.link_type = link_type
         self.k = k
